@@ -165,7 +165,7 @@ class Transaction
                         if ($package->getVersion() !== $presentPackageMap[$package->getName()]->getVersion() ||
                             $package->getDistReference() !== $presentPackageMap[$package->getName()]->getDistReference() ||
                             $package->getSourceReference() !== $presentPackageMap[$package->getName()]->getSourceReference() ||
-                            Operation\UpdateOperation::hasAbandonedStateChanged($package, $presentPackageMap[$package->getName()])
+                            null !== Operation\UpdateOperation::getAbandonedStateChange($presentPackageMap[$package->getName()], $package)
                         ) {
                             $operations[] = new Operation\UpdateOperation($source, $package);
                         }

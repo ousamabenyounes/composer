@@ -84,8 +84,11 @@ class UpdateOperation extends SolverOperation implements OperationInterface
             $toVersion = $targetPackage->getFullPrettyVersion(true, PackageInterface::DISPLAY_DIST_REF);
         }
 
-        if ($isSameVersion && self::hasAbandonedStateChanged($initialPackage, $targetPackage)) {
-            $updateDescription = ', abandoned state changed';
+        if ($isSameVersion) {
+            $abandonedStateChange = self::getAbandonedStateChange($initialPackage, $targetPackage);
+            if (null !== $abandonedStateChange) {
+                $updateDescription = ', '.$abandonedStateChange;
+            }
         }
 
         $actionName = VersionParser::isUpgrade($initialPackage->getVersion(), $targetPackage->getVersion()) ? 'Upgrading' : 'Downgrading';
@@ -93,11 +96,24 @@ class UpdateOperation extends SolverOperation implements OperationInterface
         return $actionName.' <info>'.$initialPackage->getPrettyName().'</info> (<comment>'.$fromVersion.'</comment> => <comment>'.$toVersion.'</comment>'.$updateDescription.')';
     }
 
-    public static function hasAbandonedStateChanged(PackageInterface $initialPackage, PackageInterface $targetPackage): bool
+    public static function getAbandonedStateChange(PackageInterface $initialPackage, PackageInterface $targetPackage): ?string
     {
-        return $initialPackage instanceof CompletePackageInterface
-            && $targetPackage instanceof CompletePackageInterface
-            && ($initialPackage->isAbandoned() !== $targetPackage->isAbandoned()
-                || $initialPackage->getReplacementPackage() !== $targetPackage->getReplacementPackage());
+        if (!$initialPackage instanceof CompletePackageInterface
+            || !$targetPackage instanceof CompletePackageInterface
+            || ($initialPackage->isAbandoned() === $targetPackage->isAbandoned()
+                && $initialPackage->getReplacementPackage() === $targetPackage->getReplacementPackage())
+        ) {
+            return null;
+        }
+
+        if (!$targetPackage->isAbandoned()) {
+            return 'package is now unabandoned';
+        }
+
+        if (null !== $targetPackage->getReplacementPackage()) {
+            return 'package suggests using '.$targetPackage->getReplacementPackage().' as replacement';
+        }
+
+        return 'package is now abandoned';
     }
 }
